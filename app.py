@@ -1,9 +1,40 @@
 import csv
+import secrets
+import string
+import re
 from flask import Response
 from flask import Flask, render_template, request, redirect, session
 from flask_bcrypt import Bcrypt
 from models import db, User, PasswordEntry
 from encryption import encrypt_password, decrypt_password
+
+def check_password_strength(password):
+
+    score = 0
+
+    if len(password) >= 8:
+        score += 1
+
+    if re.search(r"[A-Z]", password):
+        score += 1
+
+    if re.search(r"[a-z]", password):
+        score += 1
+
+    if re.search(r"\d", password):
+        score += 1
+
+    if re.search(r"[!@#$%^&*]", password):
+        score += 1
+
+    if score <= 2:
+        return "Schwach"
+
+    elif score <= 4:
+        return "Mittel"
+
+    return "Stark"
+
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "securevault-secret-key"
@@ -182,6 +213,51 @@ def delete_password(id):
 
     return redirect("/dashboard")
 
+@app.route("/generate-password")
+def generate_password():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    alphabet = (
+        string.ascii_letters +
+        string.digits +
+        "!@#$%^&*"
+    )
+
+    password = "".join(
+        secrets.choice(alphabet)
+        for _ in range(16)
+    )
+
+    strength = check_password_strength(password)
+
+    passwords = PasswordEntry.query.filter_by(
+        user_id=session["user_id"]
+    ).all()
+
+    decrypted_passwords = []
+
+    for p in passwords:
+
+        decrypted_passwords.append({
+            "id": p.id,
+            "title": p.title,
+            "website": p.website,
+            "username": p.username,
+            "password": decrypt_password(
+                p.encrypted_password
+            )
+        })
+
+    return render_template(
+        "dashboard.html",
+        username=session["username"],
+        passwords=decrypted_passwords,
+        generated_password=password,
+        password_strength=strength
+    )
+
 @app.route("/export")
 def export_csv():
 
@@ -213,6 +289,7 @@ def export_csv():
             "attachment; filename=passwords.csv"
         }
     )
+
 
 @app.route("/logout")
 def logout():

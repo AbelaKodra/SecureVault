@@ -12,7 +12,13 @@
 <body class="container mt-5">
 
     <h1 class="mb-4">🔐 SecureVault</h1>
+	<button
+    id="themeToggle"
+    class="btn btn-dark mb-3">
 
+    🌙 Dark Mode
+
+</button>
     <p>Willkommen <strong>{{ username }}</strong></p>
 
     <a href="/export" class="btn btn-success mb-3">
@@ -188,7 +194,65 @@
         </tbody>
 
     </table>
+	<script>
 
+const toggleButton =
+    document.getElementById("themeToggle");
+
+let darkMode =
+    localStorage.getItem("darkMode");
+
+if (darkMode === "enabled") {
+
+    document.body.classList.add(
+        "bg-dark",
+        "text-light"
+    );
+
+    toggleButton.innerHTML =
+        "☀️ Light Mode";
+}
+
+toggleButton.addEventListener(
+    "click",
+    () => {
+
+        document.body.classList.toggle(
+            "bg-dark"
+        );
+
+        document.body.classList.toggle(
+            "text-light"
+        );
+
+        if (
+            document.body.classList.contains(
+                "bg-dark"
+            )
+        ) {
+
+            localStorage.setItem(
+                "darkMode",
+                "enabled"
+            );
+
+            toggleButton.innerHTML =
+                "☀️ Light Mode";
+
+        } else {
+
+            localStorage.setItem(
+                "darkMode",
+                "disabled"
+            );
+
+            toggleButton.innerHTML =
+                "🌙 Dark Mode";
+        }
+    }
+);
+
+</script>
 </body>
 
 </html>

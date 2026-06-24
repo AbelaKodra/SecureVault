@@ -1,3 +1,5 @@
+import csv
+from flask import Response
 from flask import Flask, render_template, request, redirect, session
 from flask_bcrypt import Bcrypt
 from models import db, User, PasswordEntry
@@ -107,6 +109,39 @@ def dashboard():
         passwords=decrypted_passwords
     )
 
+@app.route("/search")
+def search():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    query = request.args.get("q", "")
+
+    results = PasswordEntry.query.filter(
+        PasswordEntry.title.contains(query),
+        PasswordEntry.user_id == session["user_id"]
+    ).all()
+
+    decrypted = []
+
+    for p in results:
+
+        decrypted.append({
+            "id": p.id,
+            "title": p.title,
+            "website": p.website,
+            "username": p.username,
+            "password": decrypt_password(
+                p.encrypted_password
+            )
+        })
+
+    return render_template(
+        "dashboard.html",
+        username=session["username"],
+        passwords=decrypted
+    )
+
 @app.route("/add", methods=["POST"])
 def add_password():
 
@@ -146,6 +181,38 @@ def delete_password(id):
         db.session.commit()
 
     return redirect("/dashboard")
+
+@app.route("/export")
+def export_csv():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    passwords = PasswordEntry.query.filter_by(
+        user_id=session["user_id"]
+    ).all()
+
+    def generate():
+
+        yield "Titel,Website,Username,Passwort\n"
+
+        for p in passwords:
+
+            yield (
+                f"{p.title},"
+                f"{p.website},"
+                f"{p.username},"
+                f"{decrypt_password(p.encrypted_password)}\n"
+            )
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition":
+            "attachment; filename=passwords.csv"
+        }
+    )
 
 @app.route("/logout")
 def logout():

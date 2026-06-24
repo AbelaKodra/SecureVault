@@ -1,15 +1,82 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Dashboard</title>
+    <title>SecureVault</title>
 </head>
+
 <body>
 
 <h1>SecureVault</h1>
 
-<p>
-Willkommen {{ username }}
-</p>
+<p>Willkommen {{ username }}</p>
+
+<hr>
+
+<h2>Neues Passwort</h2>
+
+<form action="/add" method="POST">
+
+    <input
+        name="title"
+        placeholder="Titel"
+        required>
+
+    <input
+        name="website"
+        placeholder="Website">
+
+    <input
+        name="username"
+        placeholder="Benutzername">
+
+    <input
+        name="password"
+        placeholder="Passwort"
+        required>
+
+    <button type="submit">
+        Speichern
+    </button>
+
+</form>
+
+<hr>
+
+<h2>Gespeicherte Passwörter</h2>
+
+<table border="1">
+
+<tr>
+    <th>Titel</th>
+    <th>Website</th>
+    <th>Username</th>
+    <th>Passwort</th>
+    <th>Aktion</th>
+</tr>
+
+{% for p in passwords %}
+
+<tr>
+
+    <td>{{ p.title }}</td>
+    <td>{{ p.website }}</td>
+    <td>{{ p.username }}</td>
+    <td>{{ p.password }}</td>
+
+    <td>
+        <a href="/delete/{{ p.id }}">
+            Löschen
+        </a>
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
 
 <a href="/logout">
 Logout

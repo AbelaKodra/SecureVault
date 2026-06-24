@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, session
 from flask_bcrypt import Bcrypt
-from models import db, User
-
+from models import db, User, PasswordEntry
+from encryption import encrypt_password, decrypt_password
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "securevault-secret-key"
@@ -83,11 +83,69 @@ def dashboard():
     if "user_id" not in session:
         return redirect("/login")
 
+    passwords = PasswordEntry.query.filter_by(
+        user_id=session["user_id"]
+    ).all()
+
+    decrypted_passwords = []
+
+    for p in passwords:
+
+        decrypted_passwords.append({
+            "id": p.id,
+            "title": p.title,
+            "website": p.website,
+            "username": p.username,
+            "password": decrypt_password(
+                p.encrypted_password
+            )
+        })
+
     return render_template(
         "dashboard.html",
-        username=session["username"]
+        username=session["username"],
+        passwords=decrypted_passwords
     )
 
+@app.route("/add", methods=["POST"])
+def add_password():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    title = request.form["title"]
+    website = request.form["website"]
+    username = request.form["username"]
+    password = request.form["password"]
+
+    encrypted = encrypt_password(password)
+
+    entry = PasswordEntry(
+        title=title,
+        website=website,
+        username=username,
+        encrypted_password=encrypted,
+        user_id=session["user_id"]
+    )
+
+    db.session.add(entry)
+    db.session.commit()
+
+    return redirect("/dashboard")
+
+@app.route("/delete/<int:id>")
+def delete_password(id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    entry = PasswordEntry.query.get(id)
+
+    if entry:
+        db.session.delete(entry)
+        db.session.commit()
+
+    return redirect("/dashboard")
 
 @app.route("/logout")
 def logout():
